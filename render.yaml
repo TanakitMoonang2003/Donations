@@ -1,0 +1,26 @@
+# Render (แพลน Free): https://render.com
+# สร้าง Web Service จาก repo นี้ แล้วตั้ง Environment Variables ตาม server/.env.example
+services:
+  - type: web
+    name: domme
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:prod && npm ci --prefix server
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: PROMPTPAY_ID
+        sync: false
+      - key: STREAMER_NAME
+        sync: false
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: OWNER_PASSWORD
+        generateValue: true
+      - key: OWNER_JWT_SECRET
+        generateValue: true
