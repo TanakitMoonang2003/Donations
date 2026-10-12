@@ -1,11 +1,66 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
+const Donation = require("../models/Donations");
+const OverlaySettings = require("../models/OverlaySettings");
 const {
   publishAlert,
+  publishPaidDonation,
   publishSettingsUpdated,
   revokeOverlayToken,
   subscribeToOverlay,
 } = require("../services/overlayEvents");
+
+test("paid donations above the minimum amount send an overlay alert", async () => {
+  const messages = [];
+  const response = {
+    destroyed: false,
+    writableEnded: false,
+    write(message) {
+      messages.push(message);
+    },
+    end() {
+      this.writableEnded = true;
+    },
+  };
+  const originalFindOne = OverlaySettings.findOne;
+  const originalFind = Donation.find;
+  OverlaySettings.findOne = () => ({
+    select() {
+      return this;
+    },
+    async lean() {
+      return { minimumAmount: 1 };
+    },
+  });
+  Donation.find = () => ({
+    select() {
+      return this;
+    },
+    async lean() {
+      return [];
+    },
+  });
+  const unsubscribe = subscribeToOverlay("paid-donation-test", "token-test", response);
+
+  try {
+    await publishPaidDonation({
+      streamerId: "paid-donation-test",
+      donorName: "Test supporter",
+      amount: { toString: () => "5.00" },
+      message: "hello",
+    });
+
+    assert.deepEqual(JSON.parse(messages[0].replace(/^data: |\n\n$/g, "")), {
+      name: "Test supporter",
+      amount: 5,
+      message: "hello",
+    });
+  } finally {
+    unsubscribe();
+    OverlaySettings.findOne = originalFindOne;
+    Donation.find = originalFind;
+  }
+});
 
 test("overlay alerts send display name, amount, and donor message", () => {
   const messages = [];
