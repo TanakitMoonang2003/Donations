@@ -5,7 +5,7 @@ services:
     name: domme
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:prod && npm ci --prefix server
+    buildCommand: npm run render-build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
