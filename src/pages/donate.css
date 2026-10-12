@@ -1,0 +1,826 @@
+/* ==========================================================================
+   Dome Donate — โทนม่วงน้ำเงินเข้ม ไฮไลต์แชมเปญนุ่ม ๆ
+   ฟอร์ม = แผงเดียวที่เด่นที่สุด / กำลังใจล่าสุด = รายการเปิดโล่ง ไม่ใช่การ์ด
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Serif+Thai:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap");
+
+body:has(.donate-page) {
+  background: #120f2b;
+}
+
+.donate-page {
+  --base: #120f2b;
+  --surface: #1a1640;
+  --surface-hi: #221d52;
+  --well: rgba(9, 7, 28, 0.6);
+  --line: rgba(185, 168, 255, 0.16);
+  --line-strong: rgba(185, 168, 255, 0.34);
+  --text: #eeecfb;
+  --text-soft: #cfcbea;
+  --muted: #a9a5d1;
+  --lavender: #b9a8ff;
+  --champagne: #ebcb8b;
+  --ink: #1a1433;
+  --rose: #f29bb5;
+  --ok: #9be8c3;
+  --bad: #ffb3be;
+
+  --font-display: "Fraunces", "Noto Serif Thai", Georgia, serif;
+  --font-body: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+.donate-page *,
+.donate-page *::before,
+.donate-page *::after {
+  box-sizing: border-box;
+}
+
+.donate-page button,
+.donate-page input,
+.donate-page textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.donate-page ::selection {
+  background: var(--champagne);
+  color: var(--ink);
+}
+
+.donate-page :focus-visible {
+  outline: 2px solid var(--lavender);
+  outline-offset: 3px;
+}
+
+.donate-page .donate-header,
+.donate-page .donate-main,
+.donate-page .donate-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.donate-page .section-shell {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+/* ---------- พื้นหลัง: แสงนุ่มสองจุด ---------- */
+
+.donate-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.donate-ambient__mesh {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px 480px at 50% -10%, rgba(112, 82, 232, 0.26), transparent 70%),
+    radial-gradient(700px 520px at 105% 105%, rgba(70, 56, 170, 0.28), transparent 70%);
+}
+
+.donate-ambient__grid,
+.donate-ambient__orb {
+  display: none;
+}
+
+/* ---------- Header ---------- */
+
+.donate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1.25rem;
+}
+
+.donate-page .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.donate-page .brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--champagne);
+  box-shadow: 0 0 0 4px rgba(235, 203, 139, 0.18);
+}
+
+.donate-page .header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.2rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.donate-page .header-badge-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6fe0aa;
+}
+
+/* ---------- Hero ---------- */
+
+.streamer-hero {
+  position: relative;
+  padding-block: clamp(1.5rem, 5vw, 3.5rem) clamp(2.25rem, 5vw, 3.5rem);
+}
+
+.streamer-hero-glow {
+  position: absolute;
+  top: 50%;
+  left: -6%;
+  width: 560px;
+  max-width: 90vw;
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  background: radial-gradient(circle, rgba(124, 92, 255, 0.3), transparent 65%);
+  pointer-events: none;
+}
+
+.streamer-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 4.5rem);
+}
+
+.streamer-avatar-wrap {
+  position: relative;
+  margin: 12px;
+}
+
+.streamer-avatar-ring {
+  position: absolute;
+  inset: -12px;
+  border: 1px solid rgba(235, 203, 139, 0.55);
+  border-radius: 50%;
+}
+
+.streamer-avatar {
+  position: relative;
+  display: block;
+  width: clamp(120px, 20vw, 190px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  background: var(--surface-hi);
+}
+
+.streamer-hero-text .eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--champagne);
+}
+
+.streamer-hero-text h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.75rem, 8.5vw, 5.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.streamer-hero-text .welcome {
+  max-width: 44ch;
+  margin: 1rem 0 0;
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+.hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0;
+}
+
+.hero-pill {
+  padding: 0.1rem 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--text-soft);
+}
+
+.hero-pill--accent {
+  border-color: rgba(235, 203, 139, 0.4);
+  background: rgba(235, 203, 139, 0.12);
+  color: var(--champagne);
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.75rem;
+  padding: 0.75rem 1.6rem;
+  border-radius: 12px;
+  background: var(--champagne);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 10px 28px -10px rgba(235, 203, 139, 0.55);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.hero-cta:hover {
+  filter: brightness(1.06);
+}
+
+.hero-cta:active {
+  transform: translateY(1px);
+}
+
+/* ---------- Grid หลัก ---------- */
+
+.donate-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: start;
+  gap: clamp(2rem, 5vw, 4rem);
+  padding-bottom: clamp(3rem, 8vw, 5rem);
+}
+
+/* ---------- แผงฟอร์ม / QR ---------- */
+
+.donate-form-section {
+  position: relative;
+  padding: clamp(1.4rem, 3.5vw, 2.25rem);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface) 55%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 30px 60px -30px rgba(0, 0, 0, 0.7);
+}
+
+.section-heading-row h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.section-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  background: var(--rose);
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.section-icon--heart {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21C5 16.5 2 12.6 2 8.8 2 5.9 4.2 4 6.8 4c1.9 0 3.5 1 5.2 3 1.7-2 3.3-3 5.2-3C19.8 4 22 5.9 22 8.8 22 12.6 19 16.5 12 21z'/%3E%3C/svg%3E");
+}
+
+.section-icon--qr {
+  background: var(--lavender);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM18 18h3v3h-3zM14 19h2v2h-2zM19 14h2v2h-2z'/%3E%3C/svg%3E");
+}
+
+.section-icon--spark {
+  background: var(--champagne);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z'/%3E%3C/svg%3E");
+}
+
+.section-lead {
+  margin: 0.35rem 0 1.5rem;
+  color: var(--muted);
+}
+
+/* ---------- ฟอร์ม ---------- */
+
+.donate-form {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.donate-page .field {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.donate-page .field > span {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+.donate-page .field input[type="text"],
+.donate-page .field input[type="number"],
+.donate-page .field input[type="password"],
+.donate-page .field textarea {
+  width: 100%;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--well);
+  color: var(--text);
+  line-height: 1.6;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.donate-page .field textarea {
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.donate-page .field input::placeholder,
+.donate-page .field textarea::placeholder {
+  color: #7d79a8;
+}
+
+.donate-page .field input:hover,
+.donate-page .field textarea:hover {
+  border-color: var(--line-strong);
+}
+
+.donate-page .field input:focus,
+.donate-page .field textarea:focus {
+  outline: none;
+  border-color: var(--lavender);
+  box-shadow: 0 0 0 3px rgba(185, 168, 255, 0.2);
+}
+
+.amount-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.amount-preset {
+  min-width: 4.25rem;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-soft);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.amount-preset:hover {
+  border-color: var(--lavender);
+  color: var(--text);
+}
+
+.amount-preset.is-active {
+  border-color: var(--champagne);
+  background: var(--champagne);
+  color: var(--ink);
+}
+
+/* ---------- ปุ่ม ---------- */
+
+.donate-page .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.55rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: filter 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.donate-page .button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.donate-page .button-primary {
+  background: var(--champagne);
+  color: var(--ink);
+  box-shadow: 0 10px 28px -12px rgba(235, 203, 139, 0.6);
+}
+
+.donate-page .button-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.donate-page .button-secondary {
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--text);
+}
+
+.donate-page .button-secondary:hover:not(:disabled) {
+  border-color: var(--lavender);
+  background: rgba(185, 168, 255, 0.08);
+}
+
+.donate-page .button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.donate-form .button-primary {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* ---------- ข้อความแจ้งสถานะ ---------- */
+
+.donate-page .form-message {
+  margin: 0;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.donate-page .form-message-error {
+  border-color: rgba(255, 107, 127, 0.4);
+  background: rgba(255, 107, 127, 0.1);
+  color: var(--bad);
+}
+
+.donate-page .form-message-success {
+  border-color: rgba(111, 224, 170, 0.4);
+  background: rgba(111, 224, 170, 0.1);
+  color: var(--ok);
+}
+
+/* ---------- แผง QR ---------- */
+
+.qr-panel {
+  animation: panel-in 0.4s ease-out;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.qr-summary {
+  margin: 0 0 1.5rem;
+  padding: 1.1rem 0;
+  border-block: 1px solid var(--line);
+  text-align: center;
+}
+
+.qr-summary p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.qr-summary strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.qr-summary .qr-amount {
+  margin: 0.1rem 0 0.3rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 9vw, 3.75rem);
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--champagne);
+}
+
+.qr-donor {
+  overflow-wrap: anywhere;
+}
+
+.qr-image-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 1.1rem;
+}
+
+.qr-image {
+  display: block;
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 60px -24px rgba(124, 92, 255, 0.7);
+}
+
+.qr-note {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.slip-upload-form {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0 0 1.25rem;
+  padding: 1.1rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 16px;
+}
+
+.slip-upload-form input[type="file"] {
+  width: 100%;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.slip-upload-form input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(185, 168, 255, 0.14);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.qr-actions .button {
+  flex: 1 1 11rem;
+}
+
+.qr-panel > .form-message {
+  margin-top: 0.85rem;
+}
+
+/* ---------- ส่วนของเจ้าของ ---------- */
+
+.owner-panel {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.owner-panel summary {
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.owner-panel[open] summary {
+  color: var(--text);
+}
+
+.owner-note {
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.owner-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+/* ---------- กำลังใจล่าสุด: รายการเปิดโล่ง ---------- */
+
+.recent-donations {
+  min-width: 0;
+  padding-top: 0.5rem;
+}
+
+.recent-donations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.recent-donations .section-lead {
+  margin: 0.35rem 0 1.25rem;
+}
+
+.refresh-list {
+  padding: 0.25rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.refresh-list:hover:not(:disabled) {
+  border-color: var(--lavender);
+  color: var(--text);
+}
+
+.refresh-list:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.donation-list-scroll {
+  max-height: min(70vh, 640px);
+  padding-right: 0.75rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(185, 168, 255, 0.3) transparent;
+}
+
+.donation-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.donation-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.9rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.donation-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(185, 168, 255, 0.14);
+  color: var(--lavender);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.donation-item-body {
+  min-width: 0;
+}
+
+.donation-item-head strong {
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.donation-message {
+  margin: 0.05rem 0 0.2rem;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.donation-message-empty {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.donation-time {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.list-status {
+  margin: 0;
+  padding: 1rem 0;
+  color: var(--muted);
+}
+
+.list-status-error {
+  padding: 0.7rem 0.95rem;
+  border: 1px solid rgba(255, 107, 127, 0.4);
+  border-radius: 12px;
+  background: rgba(255, 107, 127, 0.1);
+  color: var(--bad);
+}
+
+.empty-donations {
+  padding: 2.25rem 1.25rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-donations p {
+  margin: 0;
+}
+
+.empty-donations-icon {
+  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+/* ---------- Footer ---------- */
+
+.donate-footer {
+  padding-block: 1.5rem 2.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.donate-footer p {
+  margin: 0;
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 860px) {
+  .donate-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .donate-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .streamer-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .streamer-hero-glow {
+    top: 18%;
+    left: -25%;
+  }
+
+  .hero-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-panel {
+    animation: none;
+  }
+
+  .donate-page * {
+    transition: none !important;
+  }
+}

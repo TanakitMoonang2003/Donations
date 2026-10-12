@@ -44,6 +44,22 @@ const overlaySettingsSchema = new mongoose.Schema(
       default: "fade",
     },
     minimumAmount: { type: Number, default: 1, min: 0, max: 50000 },
+    goalEnabled: { type: Boolean, default: false },
+    goalTitle: {
+      type: String,
+      default: "เป้าหมายโดเนท",
+      maxlength: 80,
+      trim: true,
+    },
+    goalTarget: { type: Number, default: 10000, min: 1, max: 10000000 },
+    goalDeadline: { type: Date, default: null },
+    goalPosition: {
+      type: String,
+      enum: ["left", "right"],
+      default: "right",
+    },
+    goalFillColor: { type: String, default: "#7ad7a9" },
+    goalTrackColor: { type: String, default: "#3a3a52" },
   },
   { timestamps: true }
 );

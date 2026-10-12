@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import AlertVisual from "../components/AlertVisual.jsx";
+import OverlayGoalTube from "../components/OverlayGoalTube.jsx";
+import OwnerDonationStats from "../components/OwnerDonationStats.jsx";
 import { API_URL } from "../config/apiUrl.js";
 import { resolveApiAssetUrl } from "../utils/resolveApiAssetUrl.js";
 import "./owner.css";
+import "./overlay.css";
 const FONT_CHOICES = [
   ["system-ui, sans-serif", "System"],
   ["Arial, sans-serif", "Arial"],
@@ -24,7 +27,23 @@ const DEFAULT_SETTINGS = {
   enterAnimation: "slide-up",
   exitAnimation: "fade",
   minimumAmount: 1,
+  goalTitle: "เป้าหมายโดเนท",
+  goalTarget: 10000,
+  goalDeadline: null,
+  goalPosition: "right",
+  goalFillColor: "#7ad7a9",
+  goalTrackColor: "#3a3a52",
+  goalCurrent: 0,
 };
+
+function toDateTimeLocal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
@@ -113,7 +132,7 @@ export default function OwnerDashboard() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState("");
   const [uploadingSound, setUploadingSound] = useState(false);
 
   async function loadSettings() {
@@ -236,6 +255,7 @@ export default function OwnerDashboard() {
       const data = await request("/api/owner/overlay-token/rotate", {
         method: "POST",
       });
+      setSettings(data.settings);
       setOverlayPath(data.settings.overlayPath);
       setNotice(data.message);
     } catch (requestError) {
@@ -243,13 +263,18 @@ export default function OwnerDashboard() {
     }
   }
 
-  async function handleCopyLink() {
-    const overlayUrl = `${window.location.origin}${overlayPath}`;
+  async function handleCopyLink(kind) {
+    const path =
+      kind === "goal"
+        ? settings.goalOverlayPath || (overlayPath ? `${overlayPath}/goal` : "")
+        : overlayPath;
+    const overlayUrl = path ? `${window.location.origin}${path}` : "";
+    if (!overlayUrl) return;
     try {
       await navigator.clipboard.writeText(overlayUrl);
-      setCopied(true);
-      setNotice("คัดลอกลิงก์แล้ว");
-      window.setTimeout(() => setCopied(false), 1800);
+      setCopiedLink(kind);
+      setNotice(kind === "goal" ? "คัดลอกลิงก์หลอดเป้าหมายแล้ว" : "คัดลอกลิงก์ Alert แล้ว");
+      window.setTimeout(() => setCopiedLink(""), 1800);
     } catch (copyError) {
       console.error("Could not copy overlay link:", copyError);
       setError("คัดลอกไม่ได้ — กรุณาใช้ HTTPS หรือคัดลอกลิงก์จากช่องข้อความ");
@@ -342,6 +367,8 @@ export default function OwnerDashboard() {
 
         {error ? <p className="dashboard-banner dashboard-banner-error" role="alert">{error}</p> : null}
         {notice ? <p className="dashboard-banner dashboard-banner-success" role="status">{notice}</p> : null}
+
+        <OwnerDonationStats />
 
         <form className="dashboard-grid" onSubmit={handleSave}>
           <section className="dashboard-card dashboard-settings-card">
@@ -504,6 +531,79 @@ export default function OwnerDashboard() {
                 </select>
               </Field>
             </div>
+
+            <div className="dashboard-card-heading dashboard-goal-heading">
+              <div>
+                <span className="dashboard-eyebrow">OVERLAY DECOR</span>
+                <h2>หลอดเป้าหมาย</h2>
+              </div>
+            </div>
+            <p className="dashboard-goal-lead">
+              ใช้ลิงก์หลอดเป้าหมายแยกจาก Alert (Browser Source คนละอันใน OBS) — ยอดปัจจุบันนับจากโดเนทที่ชำระแล้วทั้งหมด
+            </p>
+            <div className="dashboard-form-grid">
+              <Field label="หัวข้อเป้าหมาย">
+                <input
+                  name="goalTitle"
+                  value={settings.goalTitle}
+                  maxLength={80}
+                  placeholder="เช่น เป้าหมายคอสเพลย์ใหม่"
+                  onChange={updateSetting}
+                />
+              </Field>
+              <Field label="ยอดเป้าหมาย (บาท)">
+                <input
+                  name="goalTarget"
+                  type="number"
+                  min="1"
+                  max="10000000"
+                  step="1"
+                  value={settings.goalTarget}
+                  onChange={updateSetting}
+                />
+              </Field>
+              <Field label="กำหนดเวลาสิ้นสุด" hint="เว้นว่างไว้ได้ หากไม่ต้องการกำหนดวันสิ้นสุด">
+                <input
+                  name="goalDeadline"
+                  type="datetime-local"
+                  value={toDateTimeLocal(settings.goalDeadline)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSettings((current) => ({
+                      ...current,
+                      goalDeadline: value ? new Date(value).toISOString() : null,
+                    }));
+                    setNotice("");
+                  }}
+                />
+              </Field>
+              <Field label="ตำแหน่งบนจอ">
+                <select
+                  name="goalPosition"
+                  value={settings.goalPosition}
+                  onChange={updateSetting}
+                >
+                  <option value="right">ขวา</option>
+                  <option value="left">ซ้าย</option>
+                </select>
+              </Field>
+              <Field label="สีหลอด (เติม)">
+                <input
+                  name="goalFillColor"
+                  type="color"
+                  value={settings.goalFillColor}
+                  onChange={updateSetting}
+                />
+              </Field>
+              <Field label="สีหลอด (พื้นหลัง)">
+                <input
+                  name="goalTrackColor"
+                  type="color"
+                  value={settings.goalTrackColor}
+                  onChange={updateSetting}
+                />
+              </Field>
+            </div>
             <div className="dashboard-form-actions">
               <button className="dashboard-primary-button" disabled={saving}>
                 {saving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
@@ -536,36 +636,81 @@ export default function OwnerDashboard() {
               <p className="dashboard-preview-note">ตัวอย่างนี้เปลี่ยนตามการตั้งค่าทันที</p>
             </section>
 
+            <section className="dashboard-card dashboard-preview-card">
+              <div className="dashboard-card-heading">
+                <div>
+                  <span className="dashboard-eyebrow">GOAL PREVIEW</span>
+                  <h2>ตัวอย่างหลอดเป้าหมาย</h2>
+                </div>
+              </div>
+              <div className="dashboard-preview-stage dashboard-preview-stage--goal">
+                <OverlayGoalTube
+                  title={settings.goalTitle}
+                  current={settings.goalCurrent ?? 0}
+                  target={settings.goalTarget}
+                  deadline={settings.goalDeadline}
+                  position={settings.goalPosition}
+                  fillColor={settings.goalFillColor}
+                  trackColor={settings.goalTrackColor}
+                  textColor={settings.textColor}
+                  fontFamily={settings.fontFamily}
+                />
+              </div>
+            </section>
+
             <section className="dashboard-card dashboard-link-card">
               <span className="dashboard-eyebrow">OBS BROWSER SOURCE</span>
-              <h2>ลิงก์ Overlay ของคุณ</h2>
-              <p>เก็บลิงก์นี้เป็นความลับ หากเผยแพร่ให้สร้างลิงก์ใหม่</p>
+              <h2>ลิงก์ Overlay</h2>
+              <p>แยก 2 Browser Source — Alert กับหลอดเป้าหมาย เก็บลิงก์เป็นความลับ</p>
+
+              <label className="dashboard-overlay-link-label">Donation Alert</label>
               <input
                 className="dashboard-overlay-url"
                 readOnly
                 value={overlayPath ? `${window.location.origin}${overlayPath}` : ""}
-                aria-label="ลิงก์ Overlay สำหรับ OBS"
+                aria-label="ลิงก์ Overlay Alert สำหรับ OBS"
               />
               <div className="dashboard-link-actions">
                 <button
                   type="button"
                   className="dashboard-secondary-button"
-                  onClick={handleCopyLink}
+                  onClick={() => handleCopyLink("alert")}
                 >
-                  {copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+                  {copiedLink === "alert" ? "คัดลอกแล้ว" : "คัดลอกลิงก์ Alert"}
+                </button>
+              </div>
+
+              <label className="dashboard-overlay-link-label">หลอดเป้าหมาย</label>
+              <input
+                className="dashboard-overlay-url"
+                readOnly
+                value={
+                  (settings.goalOverlayPath || (overlayPath ? `${overlayPath}/goal` : ""))
+                    ? `${window.location.origin}${settings.goalOverlayPath || `${overlayPath}/goal`}`
+                    : ""
+                }
+                aria-label="ลิงก์ Overlay หลอดเป้าหมายสำหรับ OBS"
+              />
+              <div className="dashboard-link-actions">
+                <button
+                  type="button"
+                  className="dashboard-secondary-button"
+                  onClick={() => handleCopyLink("goal")}
+                >
+                  {copiedLink === "goal" ? "คัดลอกแล้ว" : "คัดลอกลิงก์หลอดเป้าหมาย"}
                 </button>
                 <button
                   type="button"
                   className="dashboard-danger-button"
                   onClick={handleRotateToken}
                 >
-                  สร้างลิงก์ใหม่
+                  สร้างลิงก์ใหม่ (ทั้งคู่)
                 </button>
               </div>
               <ul className="dashboard-obs-hints">
-                <li>เพิ่มเป็น Browser Source ใน OBS</li>
-                <li>แนะนำขนาด 1920 × 1080 และเปิด Shutdown source when not visible</li>
-                <li>ใช้ลิงก์ใหม่แล้วต้องแก้ URL ใน OBS ด้วย</li>
+                <li>Alert: ใส่ลิงก์แรก — หลอดเป้าหมาย: ใส่ลิงก์ที่ลงท้ายด้วย <code>/goal</code></li>
+                <li>แนะนำขนาด 1920 × 1080, พื้นหลังโปร่งใส, Refresh browser when scene becomes active</li>
+                <li>หลัง deploy โค้ดใหม่ ต้อง restart เซิร์ฟเวอร์และ refresh source ใน OBS</li>
               </ul>
             </section>
           </aside>

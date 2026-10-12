@@ -10,6 +10,7 @@ const {
   publishSettingsUpdated,
   revokeOverlayToken,
 } = require("../services/overlayEvents");
+const { getPaidDonationTotal } = require("../services/donationTotals");
 const {
   deleteStoredSound,
   isValidStoredSoundUrl,
@@ -44,7 +45,15 @@ const SETTING_FIELDS = [
   "enterAnimation",
   "exitAnimation",
   "minimumAmount",
+  "goalTitle",
+  "goalTarget",
+  "goalDeadline",
+  "goalPosition",
+  "goalFillColor",
+  "goalTrackColor",
 ];
+
+const GOAL_POSITIONS = new Set(["left", "right"]);
 
 function configuredSecret() {
   return process.env.OWNER_JWT_SECRET;
@@ -84,20 +93,38 @@ async function getOrCreateSettings(streamerId) {
   return settings;
 }
 
-function toOwnerResponse(settings, requestOrigin) {
+function toOwnerResponse(settings, requestOrigin, goalCurrent) {
   const result = settings.toObject();
   result.overlayPath = `/overlay/${settings.overlayToken}`;
   result.overlayUrl = `${requestOrigin}${result.overlayPath}`;
+  result.goalOverlayPath = `/overlay/${settings.overlayToken}/goal`;
+  result.goalOverlayUrl = `${requestOrigin}${result.goalOverlayPath}`;
   result.soundUrl = isValidStoredSoundUrl(result.soundUrl) ? result.soundUrl : "";
   if (result.speechEnabled === undefined) result.speechEnabled = true;
   if (!result.speechTemplate) {
     result.speechTemplate = "{name} บริจาค {amount} บาท {message}";
   }
   if (result.speechRate === undefined) result.speechRate = 1;
+  if (!result.goalTitle) result.goalTitle = "เป้าหมายโดเนท";
+  if (result.goalTarget === undefined) result.goalTarget = 10000;
+  if (!GOAL_POSITIONS.has(result.goalPosition)) result.goalPosition = "right";
+  if (!result.goalFillColor) result.goalFillColor = "#7ad7a9";
+  if (!result.goalTrackColor) result.goalTrackColor = "#3a3a52";
+  if (goalCurrent !== undefined) result.goalCurrent = goalCurrent;
   return result;
 }
 
-function toPublicSettings(settings) {
+async function enrichOwnerSettings(settings, origin) {
+  const goalCurrent = await getPaidDonationTotal(settings.streamerId);
+  return toOwnerResponse(settings, origin, goalCurrent);
+}
+
+async function publishPublicSettings(streamerId, settings) {
+  const goalCurrent = await getPaidDonationTotal(streamerId);
+  publishSettingsUpdated(streamerId, toPublicSettings(settings, goalCurrent));
+}
+
+function toPublicSettings(settings, goalCurrent = 0) {
   return {
     backgroundColor: settings.backgroundColor,
     textColor: settings.textColor,
@@ -112,6 +139,13 @@ function toPublicSettings(settings) {
     duration: settings.duration,
     enterAnimation: settings.enterAnimation,
     exitAnimation: settings.exitAnimation,
+    goalTitle: settings.goalTitle || "เป้าหมายโดเนท",
+    goalTarget: settings.goalTarget ?? 10000,
+    goalDeadline: settings.goalDeadline ?? null,
+    goalPosition: GOAL_POSITIONS.has(settings.goalPosition) ? settings.goalPosition : "right",
+    goalFillColor: settings.goalFillColor || "#7ad7a9",
+    goalTrackColor: settings.goalTrackColor || "#3a3a52",
+    goalCurrent,
   };
 }
 
@@ -234,6 +268,54 @@ function validateSettings(body) {
     settings.minimumAmount = body.minimumAmount;
   }
 
+  if (
+    typeof body.goalTitle !== "string" ||
+    body.goalTitle.trim().length === 0 ||
+    body.goalTitle.length > 80
+  ) {
+    errors.push("goalTitle ต้องมีความยาว 1 ถึง 80 ตัวอักษร");
+  } else {
+    settings.goalTitle = body.goalTitle.trim();
+  }
+
+  if (
+    typeof body.goalTarget !== "number" ||
+    !Number.isFinite(body.goalTarget) ||
+    body.goalTarget < 1 ||
+    body.goalTarget > 10000000
+  ) {
+    errors.push("goalTarget ต้องอยู่ระหว่าง 1 ถึง 10,000,000 บาท");
+  } else {
+    settings.goalTarget = body.goalTarget;
+  }
+
+  if (body.goalDeadline === null || body.goalDeadline === "") {
+    settings.goalDeadline = null;
+  } else if (
+    typeof body.goalDeadline !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(body.goalDeadline) ||
+    !Number.isFinite(Date.parse(body.goalDeadline)) ||
+    new Date(body.goalDeadline).toISOString() !== body.goalDeadline
+  ) {
+    errors.push("goalDeadline ต้องเป็นวันและเวลาที่ถูกต้อง หรือเว้นว่าง");
+  } else {
+    settings.goalDeadline = new Date(body.goalDeadline);
+  }
+
+  if (!GOAL_POSITIONS.has(body.goalPosition)) {
+    errors.push("goalPosition ต้องเป็น left หรือ right");
+  } else {
+    settings.goalPosition = body.goalPosition;
+  }
+
+  for (const field of ["goalFillColor", "goalTrackColor"]) {
+    if (typeof body[field] !== "string" || !/^#[0-9a-fA-F]{6}$/.test(body[field])) {
+      errors.push(`${field} ต้องเป็นสี HEX รูปแบบ #RRGGBB`);
+    } else {
+      settings[field] = body[field];
+    }
+  }
+
   return { errors, settings };
 }
 
@@ -279,7 +361,7 @@ router.get("/session", requireOwner, (req, res) => {
 router.get("/settings", requireOwner, async (req, res) => {
   try {
     const settings = await getOrCreateSettings(req.owner.streamerId);
-    res.json({ settings: toOwnerResponse(settings, req.get("Origin") || "") });
+    res.json({ settings: await enrichOwnerSettings(settings, req.get("Origin") || "") });
   } catch (error) {
     console.error("GET /api/owner/settings error:", error.message);
     res.status(500).json({ message: "โหลดการตั้งค่า Alert ไม่สำเร็จ" });
@@ -298,14 +380,11 @@ router.put("/settings", requireOwner, async (req, res) => {
       settings[field] = validatedSettings[field];
     }
     await settings.save();
-    publishSettingsUpdated(
-      req.owner.streamerId,
-      toPublicSettings(settings)
-    );
+    await publishPublicSettings(req.owner.streamerId, settings);
 
     return res.json({
       message: "บันทึกการตั้งค่าแล้ว",
-      settings: toOwnerResponse(settings, req.get("Origin") || ""),
+      settings: await enrichOwnerSettings(settings, req.get("Origin") || ""),
     });
   } catch (error) {
     console.error("PUT /api/owner/settings error:", error.message);
@@ -332,7 +411,7 @@ router.post("/alert-sound", requireOwner, uploadAlertSound, async (req, res) => 
     settings.soundUrl = soundUrlFromFilename(finalName);
     await settings.save();
     settingsSaved = true;
-    publishSettingsUpdated(req.owner.streamerId, toPublicSettings(settings));
+    await publishPublicSettings(req.owner.streamerId, settings);
 
     let message = "อัปโหลดเสียงแจ้งเตือนแล้ว";
     try {
@@ -344,7 +423,7 @@ router.post("/alert-sound", requireOwner, uploadAlertSound, async (req, res) => 
 
     return res.json({
       message,
-      settings: toOwnerResponse(settings, req.get("Origin") || ""),
+      settings: await enrichOwnerSettings(settings, req.get("Origin") || ""),
     });
   } catch (error) {
     console.error("POST /api/owner/alert-sound error:", error.message);
@@ -370,11 +449,11 @@ router.delete("/alert-sound", requireOwner, async (req, res) => {
     await deleteStoredSound(settings.soundUrl);
     settings.soundUrl = "";
     await settings.save();
-    publishSettingsUpdated(req.owner.streamerId, toPublicSettings(settings));
+    await publishPublicSettings(req.owner.streamerId, settings);
 
     return res.json({
       message: "ลบเสียงแจ้งเตือนแล้ว",
-      settings: toOwnerResponse(settings, req.get("Origin") || ""),
+      settings: await enrichOwnerSettings(settings, req.get("Origin") || ""),
     });
   } catch (error) {
     console.error("DELETE /api/owner/alert-sound error:", error.message);
@@ -391,7 +470,7 @@ router.post("/overlay-token/rotate", requireOwner, async (req, res) => {
     revokeOverlayToken(previousToken);
     return res.json({
       message: "สร้างลิงก์ใหม่แล้ว ลิงก์เดิมใช้ไม่ได้อีกต่อไป",
-      settings: toOwnerResponse(settings, req.get("Origin") || ""),
+      settings: await enrichOwnerSettings(settings, req.get("Origin") || ""),
     });
   } catch (error) {
     console.error("POST /api/owner/overlay-token/rotate error:", error.message);

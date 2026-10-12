@@ -1,6 +1,34 @@
 const express = require("express");
 const OverlaySettings = require("../models/OverlaySettings");
 const { subscribeToOverlay } = require("../services/overlayEvents");
+const { getPaidDonationTotal } = require("../services/donationTotals");
+
+const GOAL_POSITIONS = new Set(["left", "right"]);
+
+function toOverlaySettings(doc, goalCurrent) {
+  return {
+    backgroundColor: doc.backgroundColor,
+    textColor: doc.textColor,
+    fontFamily: doc.fontFamily,
+    fontSize: doc.fontSize,
+    messageTemplate: doc.messageTemplate,
+    mediaUrl: doc.mediaUrl,
+    soundUrl: doc.soundUrl,
+    speechEnabled: doc.speechEnabled !== false,
+    speechTemplate: doc.speechTemplate,
+    speechRate: doc.speechRate ?? 1,
+    duration: doc.duration,
+    enterAnimation: doc.enterAnimation,
+    exitAnimation: doc.exitAnimation,
+    goalTitle: doc.goalTitle || "เป้าหมายโดเนท",
+    goalTarget: doc.goalTarget ?? 10000,
+    goalDeadline: doc.goalDeadline ?? null,
+    goalPosition: GOAL_POSITIONS.has(doc.goalPosition) ? doc.goalPosition : "right",
+    goalFillColor: doc.goalFillColor || "#7ad7a9",
+    goalTrackColor: doc.goalTrackColor || "#3a3a52",
+    goalCurrent,
+  };
+}
 
 const router = express.Router();
 
@@ -14,22 +42,10 @@ router.get("/:token", async (req, res) => {
       return res.status(404).json({ message: "ไม่พบลิงก์ Overlay นี้" });
     }
 
+    const goalCurrent = await getPaidDonationTotal(settings.streamerId);
+
     return res.json({
-      settings: {
-        backgroundColor: settings.backgroundColor,
-        textColor: settings.textColor,
-        fontFamily: settings.fontFamily,
-        fontSize: settings.fontSize,
-        messageTemplate: settings.messageTemplate,
-        mediaUrl: settings.mediaUrl,
-        soundUrl: settings.soundUrl,
-        speechEnabled: settings.speechEnabled !== false,
-        speechTemplate: settings.speechTemplate,
-        speechRate: settings.speechRate ?? 1,
-        duration: settings.duration,
-        enterAnimation: settings.enterAnimation,
-        exitAnimation: settings.exitAnimation,
-      },
+      settings: toOverlaySettings(settings, goalCurrent),
     });
   } catch (error) {
     console.error("GET /api/overlay/:token error:", error.message);

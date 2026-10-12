@@ -1,4 +1,5 @@
 const OverlaySettings = require("../models/OverlaySettings");
+const { getPaidDonationTotal } = require("./donationTotals");
 
 const subscribersByStreamer = new Map();
 
@@ -60,6 +61,31 @@ function publishAlert(streamerId, alert) {
   return delivered;
 }
 
+function publishGoalProgress(streamerId, current) {
+  const subscribers = subscribersByStreamer.get(streamerId);
+  if (!subscribers) return;
+
+  const payload = JSON.stringify({ current });
+  const message = `event: goal-progress\ndata: ${payload}\n\n`;
+  for (const response of subscribers.keys()) {
+    if (response.destroyed || response.writableEnded) {
+      subscribers.delete(response);
+      continue;
+    }
+
+    try {
+      response.write(message);
+    } catch (error) {
+      console.error("Could not send goal progress:", error.message);
+      subscribers.delete(response);
+    }
+  }
+
+  if (subscribers.size === 0) {
+    subscribersByStreamer.delete(streamerId);
+  }
+}
+
 function publishSettingsUpdated(streamerId, settings) {
   const subscribers = subscribersByStreamer.get(streamerId);
   if (!subscribers) return;
@@ -117,6 +143,9 @@ async function publishPaidDonation(donation) {
       amount,
       message: donation.message || "",
     });
+
+    const current = await getPaidDonationTotal(donation.streamerId);
+    publishGoalProgress(donation.streamerId, current);
   } catch (error) {
     console.error("Could not prepare paid donation alert:", error.message);
   }
@@ -124,6 +153,7 @@ async function publishPaidDonation(donation) {
 
 module.exports = {
   publishAlert,
+  publishGoalProgress,
   publishPaidDonation,
   publishSettingsUpdated,
   revokeOverlayToken,

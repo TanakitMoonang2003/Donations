@@ -1,93 +1,35 @@
 import { useEffect, useRef, useState } from "react";
 import AlertVisual from "../components/AlertVisual.jsx";
+import { useOverlayConnection } from "../hooks/useOverlayConnection.js";
 import {
   cancelAlertSpeech,
   formatAlertTemplate,
   speakAlertText,
 } from "../utils/alertSpeech.js";
-import { API_URL } from "../config/apiUrl.js";
 import { resolveApiAssetUrl } from "../utils/resolveApiAssetUrl.js";
 import "./overlay.css";
-const DEFAULT_SETTINGS = {
-  backgroundColor: "#17172b",
-  textColor: "#ffffff",
-  fontFamily: "system-ui, sans-serif",
-  fontSize: 28,
-  messageTemplate: "{name} donate {amount} บาท",
-  mediaUrl: "",
-  soundUrl: "",
-  speechEnabled: true,
-  speechTemplate: "{name} บริจาค {amount} บาท {message}",
-  speechRate: 1,
-  duration: 6,
-  enterAnimation: "slide-up",
-  exitAnimation: "fade",
-};
 
 export default function OverlayPage({ token }) {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [activeAlert, setActiveAlert] = useState(null);
   const [exiting, setExiting] = useState(false);
   const activeAlertRef = useRef(null);
   const alertQueueRef = useRef([]);
+  const onAlertRef = useRef(null);
 
-  useEffect(() => {
-    document.documentElement.classList.add("overlay-page");
-    document.body.classList.add("overlay-page");
-    return () => {
-      document.documentElement.classList.remove("overlay-page");
-      document.body.classList.remove("overlay-page");
-    };
-  }, []);
+  onAlertRef.current = (alert) => {
+    if (activeAlertRef.current) {
+      alertQueueRef.current.push(alert);
+    } else {
+      activeAlertRef.current = alert;
+      setExiting(false);
+      setActiveAlert(alert);
+    }
+  };
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_URL}/api/overlay/${encodeURIComponent(token)}`)
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Overlay token is invalid");
-        if (!cancelled) setSettings(data.settings);
-      })
-      .catch((error) => {
-        console.error("Could not load overlay settings:", error.message);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
-  useEffect(() => {
-    const eventSource = new EventSource(
-      `${API_URL}/api/overlay/${encodeURIComponent(token)}/events`
-    );
-    eventSource.onmessage = (event) => {
-      try {
-        const alert = JSON.parse(event.data);
-        if (activeAlertRef.current) {
-          alertQueueRef.current.push(alert);
-        } else {
-          activeAlertRef.current = alert;
-          setExiting(false);
-          setActiveAlert(alert);
-        }
-      } catch (error) {
-        console.error("Received an invalid overlay alert:", error);
-      }
-    };
-    eventSource.addEventListener("settings", (event) => {
-      try {
-        setSettings(JSON.parse(event.data));
-      } catch (error) {
-        console.error("Received invalid overlay settings:", error);
-      }
-    });
-    eventSource.onerror = (error) => {
-      console.error("Overlay alert stream disconnected; EventSource will retry.", error);
-    };
-
-    return () => eventSource.close();
-  }, [token]);
+  const { settings } = useOverlayConnection(token, {
+    listenAlerts: true,
+    onAlertRef,
+  });
 
   useEffect(() => {
     if (!activeAlert) return undefined;
@@ -156,7 +98,7 @@ export default function OverlayPage({ token }) {
   ]);
 
   return (
-    <main className="overlay-canvas" aria-live="polite">
+    <main className="overlay-canvas overlay-canvas--alert" aria-live="polite">
       {activeAlert ? (
         <div
           className={[

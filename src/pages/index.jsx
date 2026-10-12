@@ -7,6 +7,10 @@ import {
   regenerateDonationQr,
   verifyDonationSlip,
 } from "../api.js";
+import "./donate.css";
+import { formatMoney } from "../utils/formatMoney.js";
+
+const AMOUNT_PRESETS = [20, 50, 100, 200, 500];
 
 function formatDateTime(isoString) {
   if (!isoString) return "";
@@ -16,13 +20,16 @@ function formatDateTime(isoString) {
   }).format(new Date(isoString));
 }
 
-function formatMoney(amount) {
-  return new Intl.NumberFormat("th-TH", {
-    style: "currency",
-    currency: "THB",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
+function DonateAmbient() {
+  return (
+    <div className="donate-ambient" aria-hidden="true">
+      <div className="donate-ambient__mesh" />
+      <div className="donate-ambient__grid" />
+      <div className="donate-ambient__orb donate-ambient__orb--1" />
+      <div className="donate-ambient__orb donate-ambient__orb--2" />
+      <div className="donate-ambient__orb donate-ambient__orb--3" />
+    </div>
+  );
 }
 
 function SiteHeader() {
@@ -32,7 +39,10 @@ function SiteHeader() {
         <span className="brand-dot" aria-hidden="true" />
         Dome Donate
       </a>
-      <p className="header-note">PromptPay สำหรับสตรีมเมอร์</p>
+      <p className="header-badge">
+        <span className="header-badge-dot" aria-hidden="true" />
+        PromptPay · ปลอดภัย · แสดงบน Overlay ได้
+      </p>
     </header>
   );
 }
@@ -40,17 +50,34 @@ function SiteHeader() {
 function StreamerHero() {
   return (
     <section className="streamer-hero section-shell" id="top">
-      <img
-        className="streamer-avatar"
-        src={STREAMER.avatarUrl}
-        alt={`รูปโปรไฟล์ ${STREAMER.name}`}
-        width={120}
-        height={120}
-      />
-      <div className="streamer-hero-text">
-        <p className="eyebrow">{STREAMER.handle}</p>
-        <h1>{STREAMER.name}</h1>
-        <p className="welcome">{STREAMER.welcomeMessage}</p>
+      <div className="streamer-hero-glow" aria-hidden="true" />
+      <div className="streamer-hero-inner">
+        <div className="streamer-avatar-wrap">
+          <div className="streamer-avatar-ring" aria-hidden="true" />
+          <img
+            className="streamer-avatar"
+            src={STREAMER.avatarUrl}
+            alt={`รูปโปรไฟล์ ${STREAMER.name}`}
+            width={128}
+            height={128}
+          />
+        </div>
+        <div className="streamer-hero-text">
+          <p className="eyebrow">{STREAMER.handle}</p>
+          <h1>{STREAMER.name}</h1>
+          <p className="welcome">{STREAMER.welcomeMessage}</p>
+          <div className="hero-pills">
+            <span className="hero-pill">PromptPay</span>
+            <span className="hero-pill">ฝากข้อความถึงสตรีม</span>
+            <span className="hero-pill hero-pill--accent">ขอบคุณจากใจ</span>
+          </div>
+          <a className="hero-cta" href="#donate-form">
+            ส่งกำลังใจเลย
+            <span className="hero-cta-arrow" aria-hidden="true">
+              ↓
+            </span>
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -133,7 +160,12 @@ function PromptPayPanel({
       className="donate-form-section qr-panel"
       aria-labelledby="qr-panel-title"
     >
-      <h2 id="qr-panel-title">ชำระด้วย PromptPay</h2>
+      <div className="section-heading-row">
+        <h2 id="qr-panel-title">
+          <span className="section-icon section-icon--qr" aria-hidden="true" />
+          ชำระด้วย PromptPay
+        </h2>
+      </div>
       <p className="section-lead">
         {payment?.instruction || "สร้าง QR เพื่อโอนด้วยแอปธนาคาร"}
       </p>
@@ -272,6 +304,12 @@ function DonateForm({ onPaymentReady }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const amountNumber = Number(amount);
+  const activePreset =
+    amount !== "" && !Number.isNaN(amountNumber)
+      ? AMOUNT_PRESETS.find((p) => p === amountNumber)
+      : undefined;
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
@@ -314,11 +352,36 @@ function DonateForm({ onPaymentReady }) {
   }
 
   return (
-    <section className="donate-form-section" aria-labelledby="donate-form-title">
-      <h2 id="donate-form-title">ส่ง Donate</h2>
+    <section
+      className="donate-form-section donate-form-section--focus"
+      id="donate-form"
+      aria-labelledby="donate-form-title"
+    >
+      <div className="section-heading-row">
+        <h2 id="donate-form-title">
+          <span className="section-icon section-icon--heart" aria-hidden="true" />
+          ส่ง Donate
+        </h2>
+      </div>
       <p className="section-lead">กรอกข้อมูลแล้วระบบจะสร้าง QR ตามยอดที่กรอก</p>
 
       <form className="donate-form" onSubmit={handleSubmit} noValidate>
+        <div className="field">
+          <span>เลือกจำนวนเร็ว</span>
+          <div className="amount-presets" role="group" aria-label="จำนวนเงินที่แนะนำ">
+            {AMOUNT_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={`amount-preset${activePreset === preset ? " is-active" : ""}`}
+                onClick={() => setAmount(String(preset))}
+              >
+                {preset} ฿
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className="field">
           <span>ชื่อผู้ donate</span>
           <input
@@ -374,11 +437,16 @@ function DonateForm({ onPaymentReady }) {
 }
 
 function DonationListItem({ donation }) {
+  const initial = (donation.donorName || "?").trim().charAt(0).toUpperCase();
+
   return (
     <li className="donation-item">
+      <span className="donation-avatar" aria-hidden="true">
+        {initial}
+      </span>
+      <div className="donation-item-body">
       <div className="donation-item-head">
         <strong>{donation.donorName}</strong>
-        <span className="donation-amount">{formatMoney(donation.amount)}</span>
       </div>
       {donation.message ? (
         <p className="donation-message">{donation.message}</p>
@@ -388,19 +456,68 @@ function DonationListItem({ donation }) {
       <time className="donation-time" dateTime={donation.createdAt}>
         {formatDateTime(donation.createdAt)}
       </time>
+      </div>
     </li>
   );
 }
 
+function RecentDonations({ donations, loading, loadError, onRefresh, refreshing }) {
+  return (
+    <aside className="recent-donations" aria-labelledby="recent-donations-title">
+      <div className="recent-donations-header">
+        <div className="section-heading-row">
+          <h2 id="recent-donations-title">
+            <span className="section-icon section-icon--spark" aria-hidden="true" />
+            กำลังใจล่าสุด
+          </h2>
+        </div>
+        <button
+          type="button"
+          className="refresh-list"
+          onClick={onRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? "กำลังโหลด..." : "รีเฟรช"}
+        </button>
+      </div>
+      <p className="section-lead">ขอบคุณทุกคนที่แวะมา — แสดงเฉพาะชื่อและข้อความ</p>
+
+      {loading ? (
+        <p className="list-status">กำลังโหลดรายการ...</p>
+      ) : loadError ? (
+        <p className="list-status list-status-error" role="alert">
+          {loadError}
+        </p>
+      ) : donations.length === 0 ? (
+        <div className="empty-donations">
+          <div className="empty-donations-icon" aria-hidden="true">
+            🌟
+          </div>
+          <p>ยังไม่มีรายการ — เป็นคนแรกที่ส่งกำลังใจเลย!</p>
+        </div>
+      ) : (
+        <div className="donation-list-scroll">
+          <ul className="donation-list">
+            {donations.map((donation) => (
+              <DonationListItem key={donation.id} donation={donation} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </aside>
+  );
+}
 
 export default function HomePage() {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [paymentSession, setPaymentSession] = useState(null);
 
-  async function loadDonations() {
+  async function loadDonations({ silent = false } = {}) {
     setLoadError("");
+    if (!silent) setRefreshing(true);
     try {
       const list = await fetchDonations(STREAMER.id);
       setDonations(list);
@@ -411,15 +528,17 @@ export default function HomePage() {
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
   useEffect(() => {
-    loadDonations();
+    loadDonations({ silent: true });
   }, []);
 
   return (
-    <>
+    <div className="donate-page">
+      <DonateAmbient />
       <SiteHeader />
       <main className="donate-main">
         <StreamerHero />
@@ -433,18 +552,24 @@ export default function HomePage() {
                 setPaymentSession((current) =>
                   current ? { ...current, donation: updatedDonation } : current
                 );
-                loadDonations();
+                loadDonations({ silent: true });
               }}
             />
           ) : (
             <DonateForm onPaymentReady={setPaymentSession} />
           )}
-    
+          <RecentDonations
+            donations={donations}
+            loading={loading}
+            loadError={loadError}
+            onRefresh={() => loadDonations({ silent: false })}
+            refreshing={refreshing}
+          />
         </div>
       </main>
       <footer className="donate-footer section-shell">
         <p>© {new Date().getFullYear()} Dome — PromptPay QR (ยืนยันการโอนด้วยมือ)</p>
       </footer>
-    </>
+    </div>
   );
 }
