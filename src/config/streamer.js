@@ -8,6 +8,5 @@ export const STREAMER = {
   handle: "@Moriarety",
   welcomeMessage:
     "ขอบคุณที่แวะมาให้กำลังใจนะครับ! 💖\n\nสามารถบริจาคผ่าน PromptPay หรือ QR Code ด้านล่างนี้ได้เลยค้าบ",
-  avatarUrl:
-    "public/avatars/Aki.jpg",
+  avatarUrl: "/avatars/Aki.jpg",
 };
