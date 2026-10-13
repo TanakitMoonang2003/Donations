@@ -26,6 +26,10 @@ app.use(
 
 app.use(express.json());
 
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.use(
   "/api/uploads/alert-sounds",
   express.static(path.join(__dirname, "uploads", "alert-sounds"))
